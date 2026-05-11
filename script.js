@@ -7,7 +7,7 @@ let currentLang = 'fr'; // default language
 // API Configuration
 const API_BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
     ? 'http://localhost:3000' 
-    : 'https://definition-production.up.railway.app'; // URL de votre backend Railway
+    : window.location.origin; // Sur Vercel, l'API est sur le même domaine
 
 // Translations dictionary
 const translations = {
