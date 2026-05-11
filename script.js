@@ -570,15 +570,20 @@ async function processPayment() {
             })
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || "Erreur serveur");
+        const text = await response.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error("Réponse non-JSON:", text);
+            throw new Error("Le serveur a renvoyé une réponse invalide (non-JSON). " + text.substring(0, 100));
         }
 
-        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || "Erreur serveur");
+        }
 
         if (data.success && data.url) {
-            // 3. Redirection directe vers la page de paiement sécurisée de FedaPay
             console.log("Redirection vers FedaPay...", data.url);
             window.location.href = data.url;
         } else {
@@ -588,8 +593,7 @@ async function processPayment() {
     } catch (error) {
         console.error("Erreur détaillée:", error);
         alert("❌ Impossible d'initialiser le paiement.\n\n" + 
-              "Détails : " + error.message + "\n\n" +
-              "Assurez-vous que votre serveur backend est bien lancé.");
+              "Détails : " + error.message);
         closeModals();
     }
 }
