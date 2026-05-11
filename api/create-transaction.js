@@ -1,5 +1,3 @@
-const { FedaPay, Transaction } = require('fedapay');
-
 module.exports = async (req, res) => {
     // CORS Headers
     res.setHeader('Access-Control-Allow-Credentials', true);
@@ -25,37 +23,70 @@ module.exports = async (req, res) => {
             });
         }
 
-        // Configuration FedaPay via Env Vars
-        FedaPay.setApiKey(process.env.FEDAPAY_SECRET_KEY);
-        FedaPay.setEnvironment(process.env.FEDAPAY_ENVIRONMENT || 'sandbox');
+        const SECRET_KEY = process.env.FEDAPAY_SECRET_KEY;
+        const ENVIRONMENT = process.env.FEDAPAY_ENVIRONMENT || 'sandbox';
+        const API_URL = ENVIRONMENT === 'live' ? 'https://api.fedapay.com/v1' : 'https://sandbox-api.fedapay.com/v1';
 
-        // Création de la transaction
-        const transaction = await Transaction.create({
-            description: description || "Paiement Food Fine",
-            amount: Math.round(amount),
-            currency: { iso: 'XOF' },
-            callback_url: req.body.callbackUrl || `https://${req.headers.host}/?payment=success`,
-            customer: {
-                firstname: clientName || "Client",
-                lastname: "Food Fine",
-                email: clientEmail || "client@foodfine.com"
+        if (!SECRET_KEY) {
+            throw new Error("FEDAPAY_SECRET_KEY manquante dans les variables Vercel.");
+        }
+
+        // 1. Créer la transaction via l'API REST
+        const transResponse = await fetch(`${API_URL}/transactions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${SECRET_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                description: description || "Paiement Food Fine",
+                amount: Math.round(amount),
+                currency: { iso: 'XOF' },
+                callback_url: req.body.callbackUrl || `https://${req.headers.host}/?payment=success`,
+                customer: {
+                    firstname: clientName || "Client",
+                    lastname: "Food Fine",
+                    email: clientEmail || "client@foodfine.com"
+                }
+            })
+        });
+
+        const transData = await transResponse.json();
+
+        if (!transResponse.ok) {
+            throw new Error(transData.message || "Erreur lors de la création de la transaction API");
+        }
+
+        const transactionId = transData.v1_transaction.id;
+
+        // 2. Générer le token de paiement
+        const tokenResponse = await fetch(`${API_URL}/transactions/${transactionId}/token`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${SECRET_KEY}`,
+                'Content-Type': 'application/json'
             }
         });
 
-        const token = await transaction.generateToken();
+        const tokenData = await tokenResponse.json();
 
+        if (!tokenResponse.ok) {
+            throw new Error(tokenData.message || "Erreur lors de la génération du token API");
+        }
+
+        // Réponse finale compatible avec le frontend
         res.status(200).json({
             success: true,
-            transactionId: transaction.id,
-            token: token.token,
-            url: token.url
+            transactionId: transactionId,
+            token: tokenData.v1_token.token,
+            url: tokenData.v1_token.url
         });
+
     } catch (error) {
-        console.error("Erreur FedaPay détaillée:", error);
+        console.error("Erreur API Directe:", error.message);
         res.status(500).json({ 
             success: false, 
-            message: "FedaPay Error: " + (error.message || "Erreur inconnue"),
-            error: error.message 
+            message: "FedaPay API Error: " + error.message
         });
     }
 };
