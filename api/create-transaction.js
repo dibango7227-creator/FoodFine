@@ -24,12 +24,16 @@ module.exports = async (req, res) => {
         }
 
         const SECRET_KEY = process.env.FEDAPAY_SECRET_KEY;
-        const ENVIRONMENT = process.env.FEDAPAY_ENVIRONMENT || 'sandbox';
-        const API_URL = ENVIRONMENT === 'live' ? 'https://api.fedapay.com/v1' : 'https://sandbox-api.fedapay.com/v1';
-
+        
         if (!SECRET_KEY) {
             throw new Error("FEDAPAY_SECRET_KEY manquante dans les variables Vercel.");
         }
+
+        // Détection automatique du mode (Live ou Sandbox)
+        const isLive = SECRET_KEY.startsWith('sk_live');
+        const API_URL = isLive ? 'https://api.fedapay.com/v1' : 'https://sandbox-api.fedapay.com/v1';
+        
+        console.log(`Mode détecté : ${isLive ? 'LIVE' : 'SANDBOX'}`);
 
         // 1. Créer la transaction via l'API REST
         const transResponse = await fetch(`${API_URL}/transactions`, {
