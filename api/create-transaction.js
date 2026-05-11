@@ -51,10 +51,10 @@ module.exports = async (req, res) => {
             url: token.url
         });
     } catch (error) {
-        console.error("Erreur FedaPay:", error.message);
+        console.error("Erreur FedaPay détaillée:", error);
         res.status(500).json({ 
             success: false, 
-            message: "Erreur lors de la création de la transaction FedaPay.",
+            message: "FedaPay Error: " + (error.message || "Erreur inconnue"),
             error: error.message 
         });
     }
