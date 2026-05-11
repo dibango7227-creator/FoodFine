@@ -51,12 +51,17 @@ module.exports = async (req, res) => {
             throw new Error(transData.message || "Erreur FedaPay lors de la création");
         }
 
-        // Extraction sécurisée de l'ID (certaines versions de l'API utilisent 'v1_transaction' ou juste 'transaction')
-        const transactionId = transData.v1_transaction ? transData.v1_transaction.id : (transData.transaction ? transData.transaction.id : null);
+        // Extraction ultra-robuste de l'ID
+        let transactionId = null;
+        if (transData.v1_transaction) transactionId = transData.v1_transaction.id;
+        else if (transData['v1/transaction']) transactionId = transData['v1/transaction'].id;
+        else if (transData.transaction) transactionId = transData.transaction.id;
+        else if (transData.id) transactionId = transData.id; // Cas où l'objet est retourné directement
 
         if (!transactionId) {
-            console.error("Réponse API bizarre:", JSON.stringify(transData));
-            throw new Error("Impossible de récupérer l'ID de transaction dans la réponse de FedaPay.");
+            const keys = Object.keys(transData).join(', ');
+            console.error("Structure inconnue. Clés reçues:", keys);
+            throw new Error(`Structure de réponse FedaPay inconnue (Clés: ${keys}). Veuillez contacter le support.`);
         }
 
         // 2. Génération du Token de paiement
@@ -75,9 +80,23 @@ module.exports = async (req, res) => {
             throw new Error(tokenData.message || "Erreur FedaPay lors de la génération du token");
         }
 
-        // Extraction sécurisée du Token et de l'URL
-        const finalToken = tokenData.v1_token ? tokenData.v1_token.token : (tokenData.token ? tokenData.token.token : null);
-        const finalUrl = tokenData.v1_token ? tokenData.v1_token.url : (tokenData.token ? tokenData.token.url : null);
+        // Extraction ultra-robuste du Token et de l'URL
+        let finalToken = null;
+        let finalUrl = null;
+
+        if (tokenData.v1_token) {
+            finalToken = tokenData.v1_token.token;
+            finalUrl = tokenData.v1_token.url;
+        } else if (tokenData['v1/token']) {
+            finalToken = tokenData['v1/token'].token;
+            finalUrl = tokenData['v1/token'].url;
+        } else if (tokenData.token) {
+            finalToken = typeof tokenData.token === 'string' ? tokenData.token : tokenData.token.token;
+            finalUrl = tokenData.token.url || tokenData.url;
+        } else {
+            finalToken = tokenData.token;
+            finalUrl = tokenData.url;
+        }
 
         if (!finalUrl) {
             throw new Error("Lien de paiement non généré par FedaPay.");
