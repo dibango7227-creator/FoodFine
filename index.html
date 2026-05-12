@@ -23,6 +23,7 @@
             <li><a href="#delivery" data-i18n="nav_delivery">Livraison</a></li>
             <li><a href="#reservation" data-i18n="nav_reservation">Réservation</a></li>
             <li><a href="#subscriptions" data-i18n="nav_plans">Abonnements</a></li>
+            <li><a href="#" onclick="openHistoryModal()" style="color: var(--primary-color); font-weight: bold;"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="nav_history">Mes Commandes</span></a></li>
         </ul>
         <div class="nav-icons">
             <!-- Language Switcher -->
@@ -399,6 +400,18 @@
         </div>
     </div>
 
+    <!-- History Modal -->
+    <div class="modal" id="history-modal">
+        <button class="modal-close" onclick="closeModals()"><i class="fa-solid fa-xmark"></i></button>
+        <div class="modal-header text-center">
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Mes Commandes</h3>
+            <p>Retrouvez vos 5 dernières factures</p>
+        </div>
+        <div id="history-list" class="history-list" style="margin-top: 20px;">
+            <!-- Injected by JS -->
+        </div>
+    </div>
+
     <!-- Hidden Printable Invoice -->
     <div id="invoice-template" class="invoice-container print-only" translate="no">
         <div class="invoice-header">
@@ -440,34 +453,36 @@
                 </tbody>
             </table>
             <div class="invoice-summary">
-                <div class="summary-row">
-                    <span data-i18n="inv_sub">Sous-total :</span>
-                    <span id="inv-subtotal"></span>
-                </div>
-                <!-- Optional Delivery Fee Row for Invoice -->
-                <div class="summary-row" id="inv-delivery-fee-row" style="display:none;">
-                    <span data-i18n="inv_del_fee">Frais de livraison :</span>
-                    <span>500 F</span>
-                </div>
-                <div class="summary-row">
-                    <span>Tax (0%):</span>
-                    <span>$0.00</span>
-                </div>
-                <div class="summary-row total">
-                    <span data-i18n="inv_tot">Total Payé :</span>
-                    <span id="inv-total"></span>
+                <div class="summary-details">
+                    <div class="summary-row">
+                        <span data-i18n="inv_sub">Sous-total :</span>
+                        <span id="inv-subtotal"></span>
+                    </div>
+                    <div class="summary-row" id="inv-delivery-fee-row" style="display:none;">
+                        <span data-i18n="inv_del_fee">Frais de livraison :</span>
+                        <span>500 F</span>
+                    </div>
+                    <div class="summary-row total" style="background: #D90429; color: #fff; padding: 15px; border-radius: 8px; margin-top: 10px; font-size: 1.5rem; text-align: right;">
+                        <span data-i18n="inv_tot">TOTAL PAYÉ :</span>
+                        <span id="inv-total" style="font-weight: 800; margin-left: 20px;"></span>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="invoice-footer">
-            <p data-i18n="inv_thanks">Merci d'avoir dîné avec Food Fine !</p>
-            <p style="font-size: 0.8rem; color: #888; margin-top: 5px;" data-i18n="inv_contact">Si vous avez des questions concernant cette facture, contactez contact@foodfine.com</p>
+        <div class="invoice-footer" style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; padding-top: 20px; border-top: 2px solid #eee;">
+            <div style="flex: 1;">
+                <p data-i18n="inv_thanks" style="font-weight: bold; font-size: 1.1rem;">Merci d'avoir dîné avec Food Fine !</p>
+                <p style="font-size: 0.8rem; color: #888; margin-top: 5px;" data-i18n="inv_contact">Contact: aimoneyhello@gmail.com | +229 0150705194</p>
+            </div>
+            <!-- QR Code container en bas à droite -->
+            <div id="invoice-qrcode" style="width: 100px; height: 100px; border: 1px solid #eee; padding: 5px;"></div>
         </div>
     </div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/fr.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
     <script src="script.js?v=3"></script>

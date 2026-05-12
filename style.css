@@ -1175,3 +1175,45 @@ select.styled-input {
     color: var(--primary-color);
 }
 }
+
+/* Order History */
+.history-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px;
+    margin-top: 20px;
+}
+.history-list::-webkit-scrollbar {
+    width: 6px;
+}
+.history-list::-webkit-scrollbar-thumb {
+    background: #eee;
+    border-radius: 10px;
+}
+.history-item {
+    background: #fff;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #f0f0f0;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+.history-item:hover {
+    transform: translateX(5px);
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+.history-info h4 {
+    margin: 0;
+    color: var(--secondary-color);
+    font-size: 1rem;
+}
+.history-info p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-light);
+}

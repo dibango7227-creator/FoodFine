@@ -57,8 +57,8 @@ const translations = {
         res_mod_btn: "Procéder au paiement",
         momo_title: "Paiement Mobile Money", momo_desc: "Entrez vos détails pour confirmer", momo_name: "Nom Complet (Pour Facture)", momo_num: "Numéro Mobile Money", momo_btn: "Confirmer le paiement", momo_load: "Traitement en cours...", momo_succ: "Paiement Réussi !", momo_dl: "Télécharger Facture",
         inv_title: "FACTURE", inv_date: "Date :", inv_num: "Facture # :", inv_method: "Méthode de Paiement :", inv_status: "Statut :", inv_paid: "PAYÉ",
-        inv_client: "Nom du Client :", inv_del_addr: "Adresse de Livraison :", inv_res_code: "Code de Réservation :", inv_res_table: "Numéro de Table :", inv_res_date: "Date & Heure :",
-        inv_desc: "Description", inv_amt: "Montant", inv_sub: "Sous-total :", inv_del_fee: "Frais de livraison :", inv_tot: "Total Payé :", inv_thanks: "Merci d'avoir dîné avec Food Fine !", inv_contact: "Si vous avez des questions concernant cette facture, contactez aimoneyhello@gmail.com"
+        inv_desc: "Description", inv_amt: "Montant", inv_sub: "Sous-total :", inv_del_fee: "Frais de livraison :", inv_tot: "Total Payé :", inv_thanks: "Merci d'avoir dîné avec Food Fine !", inv_contact: "Contact: aimoneyhello@gmail.com | +229 0150705194",
+        nav_history: "Mes Commandes"
     },
     en: {
         nav_home: "Home", nav_menu: "Menu", nav_delivery: "Delivery", nav_reservation: "Reservation", nav_plans: "Plans",
@@ -598,10 +598,67 @@ async function processPayment() {
     }
 }
 
-function downloadInvoice() {
+function saveToHistory(invoice) {
+    let history = JSON.parse(localStorage.getItem('ff_history') || '[]');
+    history.unshift(invoice); // Add to beginning
+    if (history.length > 5) history = history.slice(0, 5); // Keep last 5
+    localStorage.setItem('ff_history', JSON.stringify(history));
+}
+
+function openHistoryModal() {
+    renderHistory();
+    document.getElementById('modal-overlay').classList.add('active');
+    document.getElementById('history-modal').classList.add('active');
+}
+
+function renderHistory() {
+    const container = document.getElementById('history-list');
+    const history = JSON.parse(localStorage.getItem('ff_history') || '[]');
+    container.innerHTML = '';
+
+    if (history.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#888;">Aucune commande récente.</p>';
+        return;
+    }
+
+    history.forEach((inv, index) => {
+        container.innerHTML += `
+            <div style="background:#f9f9f9; padding:15px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; border-left:4px solid var(--primary-color);">
+                <div>
+                    <h4 style="margin:0;">${inv.id}</h4>
+                    <p style="margin:0; font-size:0.8rem; color:#888;">${inv.date} - ${inv.total} F</p>
+                </div>
+                <button class="btn-primary" style="padding:5px 12px; font-size:0.8rem;" onclick="reDownloadInvoice(${index})">
+                    <i class="fa-solid fa-download"></i>
+                </button>
+            </div>
+        `;
+    });
+}
+
+function reDownloadInvoice(index) {
+    const history = JSON.parse(localStorage.getItem('ff_history') || '[]');
+    const data = history[index];
+    if (!data) return;
+
+    // Restore state temporarily for generation
+    invoiceData = data.details;
+    checkoutTotal = data.amount;
+    currentCheckoutType = data.type;
+    cart = data.items;
+
+    downloadInvoice(true); // true means from history
+}
+
+function downloadInvoice(fromHistory = false) {
     const d = new Date();
-    const invNum = 'INV-' + Math.floor(Math.random() * 100000);
-    document.getElementById('inv-date').textContent = d.toLocaleDateString();
+    const invNum = fromHistory ? invoiceData.invNum : ('INV-' + Math.floor(Math.random() * 100000));
+    
+    if (!fromHistory) {
+        invoiceData.invNum = invNum;
+    }
+
+    document.getElementById('inv-date').textContent = fromHistory ? invoiceData.invDate : d.toLocaleDateString();
     document.getElementById('inv-number').textContent = invNum;
     document.getElementById('inv-client-name').textContent = invoiceData.clientName || 'Valued Customer';
     
@@ -665,13 +722,46 @@ function downloadInvoice() {
         colorLight : "#ffffff",
         correctLevel : QRCode.CorrectLevel.L
     });
+    
+    // Save to history if it's a new one
+    if (!fromHistory) {
+        saveToHistory({
+            id: invNum,
+            date: d.toLocaleDateString(),
+            total: checkoutTotal,
+            amount: checkoutTotal,
+            type: currentCheckoutType,
+            items: [...cart],
+            details: { ...invoiceData, invDate: d.toLocaleDateString() }
+        });
+    }
 
-    setTimeout(() => {
-        window.print();
+    // Téléchargement PDF
+    const element = document.getElementById('invoice-template');
+    element.style.display = 'block'; // Rendre visible pour la capture
+    
+    const opt = {
+        margin: 10,
+        filename: `${invNum}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // Utiliser html2pdf pour le téléchargement réel
+    html2pdf().set(opt).from(element).save().then(() => {
+        element.style.display = 'none'; // Re-cacher
         setTimeout(() => {
             closeModals();
-        }, 1000);
-    }, 500);
+            // Recharger si c'est une nouvelle commande pour vider le panier
+            if (!fromHistory) window.location.href = window.location.pathname;
+        }, 1500);
+    }).catch(err => {
+        console.error("Erreur PDF:", err);
+        window.print();
+        element.style.display = 'none';
+        closeModals();
+    });
 }
 
 // Menu Mobile Toggle
